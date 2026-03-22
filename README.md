@@ -47,4 +47,4 @@ Script diseñado para aislar secciones específicas del documento (actualmente: 
 
 1. Clona este repositorio.
 2. Abre los cuadernos en la carpeta `notebooks/` (las dependencias se instalan automáticamente en la primera celda).
-3. Crea un archivo `.env` en la raíz del proyecto (o configura las variables de entorno en tu plataforma) basándote en la plantilla de .env.example y añade tus credenciales.
+3. Crea un archivo `.env` en la raíz del proyecto (o configura las variables de entorno en tu plataforma) basándote en la plantilla de .env.example y añade tus credenciales
