@@ -254,3 +254,5 @@ claude
 # Datos en tiempo de ejecución (DB, reportes generados)
 data/audit_cache.db
 data/evaluation_reports/
+
+data/

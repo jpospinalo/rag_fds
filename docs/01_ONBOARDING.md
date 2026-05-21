@@ -13,7 +13,7 @@ cd fds
 
 ## 2. Desplegar la Infraestructura (AWS)
 
-La plataforma utiliza servicios de AWS distribuidos. La creación de estos recursos (S3, EC2, Application Load Balancer, Security Groups y Cloud9) está automatizada mediante scripts de Infrastructure as Code (IaC).
+La plataforma utiliza servicios de AWS distribuidos. La creación de estos recursos (S3, EC2, Security Groups) está automatizada mediante scripts de Infrastructure as Code (IaC).
 
 1. Abre tu terminal configurada con AWS CLI o accede a AWS CloudShell.
 2. Ejecuta el script de infraestructura:
@@ -23,7 +23,10 @@ chmod +x scripts/setup_aws.sh
 ./scripts/setup_aws.sh
 ```
 
-Al finalizar, el script mostrará en pantalla un resumen con el nombre del bucket S3, la IP Elástica de la EC2, el DNS del Load Balancer y los IDs de los grupos de seguridad. Guarda estos datos para los siguientes pasos.
+Al finalizar, el script mostrará en pantalla un resumen con el nombre del bucket S3, la IP de la EC2. Guarda estos datos para los siguientes pasos.
+
+>[!NOTE]
+>Si quieres dejar todo en la nube para trabajar y que todos puedan ver lo que has hecho consulta la [Guía de configuracion de entorno Cloud 9](./C9_CREATION.md)
 
 ## 3. Configurar ChromaDB en EC2 (Motor Vectorial)
 Nuestra arquitectura aloja la base de datos vectorial en la instancia EC2 para separar la carga de trabajo. Debes inicializar este servicio remoto antes de levantar el backend local.
@@ -31,7 +34,7 @@ Nuestra arquitectura aloja la base de datos vectorial en la instancia EC2 para s
 1. Conéctate a tu instancia EC2 recién creada mediante SSH:
 
 ```bash
-ssh -i "tu-llave.pem" ubuntu@<EC2_ELASTIC_IP>
+ssh -i "tu-llave.pem" ubuntu@<EC2_IP>
 ```
 
 2. Crea el archivo de instalación dentro de la instancia EC2:
@@ -48,9 +51,7 @@ nano setup_chromadb.sh
 chmod +x setup_chromadb.sh
 ./setup_chromadb.sh
 ```
-Al finalizar, el script creará un servicio systemd y ChromaDB quedará ejecutándose en segundo plano en el puerto 4000. Puedes verificarlo corriendo: curl http://localhost:4000/api/v1/heartbeat.
-
-Al finalizar, el script mostrará en pantalla el nombre del bucket S3 y la IP Elástica de tu servidor. Guarda estos datos para el siguiente paso.
+Al finalizar, el script creará un servicio systemd y ChromaDB quedará ejecutándose en segundo plano en el puerto 4000. Puedes verificarlo corriendo: curl http://localhost:4000/api/v2/heartbeat.
 
 ## 4. Configurar las Variables de Entorno
 
@@ -98,17 +99,9 @@ AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT=tu_modelo_aqui
 # CHROMA KEYS
 CHROMA_SERVER_HOST=IP_del_servidor
 CHROMA_SERVER_PORT=puerto_del_chroma
+
+VITE_API_URL=http://<DNS_PUBLICO_C9 o localhost>:8000 
 ```
-
-### Frontend (`apps/frontend/.env`)
-
-Para que el frontend pueda comunicarse con la API en la nube de forma estática, crea un archivo `.env` dentro de la carpeta `apps/frontend/` con el DNS del Load Balancer (o `http://localhost:8000` si es local):
-
-```env
-# DNS del Application Load Balancer (o entorno local localhost:8000)
-VITE_API_URL=http://<ALB_DNS_URL>
-```
-
 
 ## 5. Configurar el Entorno Virtual (Backend Local)
 
@@ -136,4 +129,40 @@ Con el entorno virtual activado y tu archivo `.env` configurado, ejecuta el back
 python -m uvicorn api_backend.main:app --reload --port 8000 --host 0.0.0.0 --app-dir apps
 ```
 
-Si la consola muestra `Application startup complete`, el servidor estará operativo. Puedes acceder a la documentación interactiva de la API en `http://localhost:8000/docs`.
+Si la consola muestra `Application startup complete`, el servidor estará operativo. Puedes acceder a la documentación interactiva de la API en `http://localhost:8000/api/docs` o `http://<DNS_PUBLICO_C9>:8000/api/docs`.
+
+## 7. Ejecución de la Aplicación Web (Frontend SPA)
+
+El frontend está construido sobre una arquitectura SPA moderna con React, Vite y TypeScript. Para levantar la interfaz gráfica y conectarla con la API local, sigue estos pasos:
+
+### Paso 7.1: Configurar el entorno del Frontend
+
+Crea un archivo de configuración específico para las variables del cliente web dentro de la carpeta del frontend:
+
+Archivo: apps/frontend/.env
+
+```env
+# URL de conexión a la API local expuesta al navegador
+VITE_API_URL=http://<localhost o DNS_PUBLICO_C9>:8000
+
+```
+
+### Paso 7.2: Instalación y Ejecución
+
+Abre una **nueva terminal** (manteniendo el servidor backend corriendo en la ventana anterior) y ejecuta los siguientes comandos para instalar dependencias y levantar el servidor de desarrollo:
+
+```bash
+# Navegar al directorio del frontend
+cd apps/frontend
+
+# Instalar los paquetes de Node
+npm install
+
+# Levantar el servidor de desarrollo en caliente
+npm run dev
+
+```
+
+La consola te indicará una URL local (generalmente `http://localhost:5173`). Abre esa dirección en tu navegador para interactuar con la plataforma de manera visual
+
+Si estas en el entorno de c9 para acceder a este en ves de localhost es (`http://DNS_PUBLICO_C9:5173`). Abre esa dirección en tu navegador para interactuar con la plataforma de manera visual
